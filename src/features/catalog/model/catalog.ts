@@ -20,5 +20,9 @@ export function createElement(kind: Kind, count: number): Element {
     wavelength: 550,
     focal: 180,
     index: 1.52,
+    mount: null,
+    lx: 0,
+    ly: 0,
+    langle: 0,
   };
 }

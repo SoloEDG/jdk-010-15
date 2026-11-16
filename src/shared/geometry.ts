@@ -18,6 +18,17 @@ export const direction = (angle: number) => ({
   x: Math.cos((angle * Math.PI) / 180),
   y: Math.sin((angle * Math.PI) / 180),
 });
+/** 绕原点旋转 p（角度制，逆时针为正）。 */
+export const rot = (p: Point, angle: number): Point => {
+  const c = Math.cos((angle * Math.PI) / 180),
+    s = Math.sin((angle * Math.PI) / 180);
+  return { x: p.x * c - p.y * s, y: p.x * s + p.y * c };
+};
+/** 把角度规范到 (-180, 180]，仅用于显示与输入。 */
+export const wrapAngle = (a: number) => {
+  const w = ((((a + 180) % 360) + 360) % 360) - 180;
+  return w === -180 ? 180 : w;
+};
 export function endpoints(e: Element): [Point, Point] {
   const t = mul(direction(e.angle), e.size / 2);
   return [sub(e, t), add(e, t)];

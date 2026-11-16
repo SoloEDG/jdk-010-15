@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import {
   Sun,
   Undo2,
@@ -11,7 +11,13 @@ import {
   FlaskConical,
 } from "lucide-react";
 import { CatalogPanel, Inspector, createElement } from "../features/catalog";
-import { Bench, ObjectList, useDocument } from "../features/bench";
+import {
+  Bench,
+  MountPanel,
+  ObjectList,
+  SelectionPanel,
+  useDocument,
+} from "../features/bench";
 import { useOptics, RayLayer, OpticsControls } from "../features/optics";
 import { useDetector, DetectorPanel } from "../features/detector";
 import {
@@ -27,7 +33,47 @@ export function App() {
   const [grid, setGrid] = useState(true);
   const [help, setHelp] = useState(false);
   const [notice, setNotice] = useState("");
+  const [placingPivot, setPlacingPivot] = useState(false);
   const selected = state.doc.items.find((e) => e.id === state.selected);
+  const selectedMount =
+    state.doc.mounts.find((m) => m.id === state.selectedMount) ?? null;
+
+  // 切换支架时退出铰接中心拾取模式
+  useEffect(() => {
+    setPlacingPivot(false);
+  }, [state.selectedMount]);
+
+  // 全局快捷键：撤销/重做/删除/取消
+  useEffect(() => {
+    const onKey = (ev: KeyboardEvent) => {
+      const t = ev.target as HTMLElement | null;
+      if (
+        t &&
+        (t.tagName === "INPUT" || t.tagName === "SELECT" || t.tagName === "TEXTAREA")
+      )
+        return;
+      const mod = ev.ctrlKey || ev.metaKey;
+      if (mod && ev.key.toLowerCase() === "z") {
+        ev.preventDefault();
+        if (ev.shiftKey) state.redo();
+        else state.undo();
+      } else if (mod && ev.key.toLowerCase() === "y") {
+        ev.preventDefault();
+        state.redo();
+      } else if (
+        (ev.key === "Delete" || ev.key === "Backspace") &&
+        state.selection.length
+      ) {
+        ev.preventDefault();
+        state.removeIds(state.selection);
+      } else if (ev.key === "Escape") {
+        setPlacingPivot(false);
+        state.clearSelection();
+      }
+    };
+    window.addEventListener("keydown", onKey);
+    return () => window.removeEventListener("keydown", onKey);
+  });
   return (
     <div className="app-shell">
       <header>
@@ -43,10 +89,10 @@ export function App() {
           未命名实验 <span>本地工作区</span>
         </div>
         <div className="header-actions">
-          <button title="撤销" disabled={!state.canUndo} onClick={state.undo}>
+          <button title="撤销 (Ctrl+Z)" disabled={!state.canUndo} onClick={state.undo}>
             <Undo2 size={17} />
           </button>
-          <button title="重做" disabled={!state.canRedo} onClick={state.redo}>
+          <button title="重做 (Ctrl+Shift+Z)" disabled={!state.canRedo} onClick={state.redo}>
             <Redo2 size={17} />
           </button>
           <i />
@@ -88,13 +134,17 @@ export function App() {
               }
               const e = createElement(kind, state.doc.items.length);
               state.replace({ ...state.doc, items: [...state.doc.items, e] });
-              state.setSelected(e.id);
+              state.selectOnly(e.id);
             }}
           />
           <ObjectList
             doc={state.doc}
-            selected={state.selected}
-            onSelect={state.setSelected}
+            selection={state.selection}
+            selectedMount={state.selectedMount}
+            onSelect={(id, additive) =>
+              additive ? state.toggleSelect(id) : state.selectOnly(id)
+            }
+            onSelectMount={state.selectMount}
           />
         </aside>
         <div className="center">
@@ -123,9 +173,26 @@ export function App() {
             <div className="canvas-container">
               <Bench
                 doc={state.doc}
-                selected={state.selected}
-                onSelect={state.setSelected}
+                selection={state.selection}
+                selectedMount={state.selectedMount}
+                placingPivot={placingPivot}
+                onSelect={(id, additive) => {
+                  if (id === null) state.clearSelection();
+                  else if (additive) state.toggleSelect(id);
+                  else state.selectOnly(id);
+                }}
                 onUpdate={state.update}
+                onNudge={state.nudge}
+                onDragMount={state.translateMount}
+                onRotateMount={state.setMountAngle}
+                onDetach={(id, at) => state.detach(id, at)}
+                onPickPivot={(p) => {
+                  if (selectedMount) {
+                    state.setPivot(selectedMount.id, p);
+                    setNotice("铰接旋转中心已更新");
+                  }
+                  setPlacingPivot(false);
+                }}
                 grid={grid}
               >
                 <RayLayer
@@ -137,7 +204,7 @@ export function App() {
               </Bench>
               <div className="canvas-badge">
                 <MousePointer2 size={13} />
-                选择与拖动
+                选择与拖动 · Shift 多选
               </div>
               <div className="scale">
                 ━━━━ <span>100 mm</span>
@@ -147,11 +214,16 @@ export function App() {
               <span>
                 <Move size={12} />
                 拖动移动器件 <i />
+                支架成员整体拖动 <i />
+                Alt+拖动拆出 <i />
                 方向键微调
               </span>
               <span>
                 {optics.result.segments.length} 段光路 ·{" "}
                 {state.doc.items.length} 个器件
+                {state.doc.mounts.length
+                  ? ` · ${state.doc.mounts.length} 个支架`
+                  : ""}
               </span>
             </div>
           </section>
@@ -162,17 +234,40 @@ export function App() {
           />
         </div>
         <aside className="right-sidebar">
-          <Inspector
-            element={selected}
-            onUpdate={(p) => selected && state.update(selected.id, p)}
-            onRemove={() => selected && state.remove(selected.id)}
-          />
+          {selectedMount ? (
+            <MountPanel
+              doc={state.doc}
+              mount={selectedMount}
+              placingPivot={placingPivot}
+              onTogglePick={() => setPlacingPivot(!placingPivot)}
+              onAngle={(a) => state.setMountAngle(selectedMount.id, a)}
+              onPivot={(p) => state.setPivot(selectedMount.id, p)}
+              onResetPivot={() => state.resetPivot(selectedMount.id)}
+              onToggleLock={() => state.toggleLock(selectedMount.id)}
+              onUngroup={() => state.ungroup(selectedMount.id)}
+            />
+          ) : state.selection.length > 1 ? (
+            <SelectionPanel
+              count={state.selection.length}
+              onGroup={state.group}
+              onRemove={() => state.removeIds(state.selection)}
+            />
+          ) : (
+            <Inspector
+              element={selected}
+              mount={selected ? state.mountOf(selected.id) : null}
+              onUpdate={(p) => selected && state.update(selected.id, p)}
+              onUpdateWorld={(p) => selected && state.updateWorld(selected.id, p)}
+              onUpdateLocal={(p) => selected && state.updateLocal(selected.id, p)}
+              onSelectMount={state.selectMount}
+              onRemove={() => selected && state.removeIds([selected.id])}
+            />
+          )}
           <MissionPanel
             mission={mission.mission}
             evaluation={mission.evaluation}
             onChoose={(id) => {
               state.replace(mission.choose(id));
-              state.setSelected(null);
             }}
           />
         </aside>
@@ -196,10 +291,17 @@ export function App() {
             <h2>在光的世界里动手探索</h2>
             <p>1. 点击左侧器件添加到实验台。</p>
             <p>2. 拖动器件改变位置；右侧调整角度、焦距与波长。</p>
-            <p>3. 光线遇到接收屏后终止，底部实时显示命中能量与光斑半径。</p>
             <p>
-              4.
-              选择实验任务，达到测量条件时自动完成。保存实验后，刷新可恢复器件布局。
+              3. Shift+点击多选器件后可「建立刚性支架」：支架整体移动、绕铰接中心旋转，
+              内部几何保持不变；Alt+拖动可拆出单个器件。
+            </p>
+            <p>
+              4. 选中支架可设置铰接旋转中心、锁定局部参数；器件属性中世界坐标与
+              相对支架的局部坐标分列，互不影响。
+            </p>
+            <p>
+              5. 光线遇到接收屏后终止，底部实时显示命中能量与光斑半径。
+              选择实验任务，达到测量条件时自动完成；保存实验后刷新可恢复布局。
             </p>
             <p className="muted">
               透镜采用近轴薄透镜模型。棱镜使用带色散的 Snell

@@ -304,6 +304,24 @@ main {
 .object-list button > i.source {
   background: #bbdf7a;
 }
+.object-list button > i.mount-dot {
+  background: none;
+  border: 1.5px solid #f5c778;
+  border-radius: 2px;
+  width: 7px;
+  height: 7px;
+}
+.object-list .mount-row {
+  color: #d8c9a8;
+}
+.object-list .mount-row.active {
+  background: #332d1e;
+  color: #f0d9a8;
+}
+.object-list .lock-icon {
+  color: #a89568;
+  margin-left: 2px;
+}
 .object-list small {
   margin-left: auto;
   font-size: 9px;
@@ -594,6 +612,122 @@ select {
   padding: 7px;
   font-size: 10px;
   margin-top: 14px;
+}
+/* ---- 刚性支架 ---- */
+.coord-caption {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  font-size: 10px;
+  color: #8b9aa7;
+  margin: 4px 0 8px;
+}
+.coord-caption small {
+  font-size: 8px;
+  color: #5d6d7a;
+}
+.coord-caption em {
+  display: inline-flex;
+  align-items: center;
+  gap: 3px;
+  margin-left: auto;
+  font-style: normal;
+  font-size: 8px;
+  color: #c8a86a;
+}
+.coordinates {
+  flex-wrap: wrap;
+}
+.coordinates label {
+  flex: 1;
+  width: auto;
+  min-width: 62px;
+}
+.coordinates label.disabled {
+  opacity: 0.45;
+}
+.coordinates input:disabled {
+  cursor: not-allowed;
+}
+.mount-badge {
+  display: flex;
+  width: 100%;
+  align-items: center;
+  gap: 7px;
+  border: 1px solid #4a4028;
+  background: #221e14;
+  color: #d8c9a8;
+  border-radius: 5px;
+  padding: 7px 9px;
+  font-size: 10px;
+  margin: -6px 0 16px;
+}
+.mount-badge span {
+  margin-left: auto;
+  font-size: 8px;
+  color: #8f8468;
+}
+.pivot-actions {
+  display: flex;
+  gap: 8px;
+  margin: -8px 0 14px;
+}
+.pivot-actions button {
+  flex: 1;
+  border: 1px solid #3a4450;
+  border-radius: 5px;
+  padding: 6px 4px;
+  font-size: 9px;
+  color: #9fb0bd;
+}
+.pivot-actions button.enabled {
+  border-color: #c8a86a;
+  color: #f0d9a8;
+  background: #2c2617;
+}
+.lock-toggle {
+  width: 100%;
+  border: 1px solid #3a4450;
+  border-radius: 5px;
+  padding: 7px;
+  font-size: 10px;
+  color: #a9b8c4;
+  margin-top: 4px;
+}
+.mount-hint {
+  margin: 12px 0 0;
+  line-height: 1.8;
+}
+.group-button {
+  width: 100%;
+  margin-top: 4px;
+}
+.multi-empty {
+  padding: 26px 0 18px;
+}
+.drag-badge rect {
+  fill: #1a242e;
+  stroke: #3d4a56;
+  opacity: 0.95;
+}
+.drag-badge text {
+  fill: #d8c9a8;
+  font-size: 11px;
+}
+.bench-svg.placing-pivot {
+  cursor: crosshair;
+}
+.rotate-handle {
+  cursor: grab;
+}
+.rotate-handle:active {
+  cursor: grabbing;
+}
+.rotate-handle .handle-dot {
+  fill: #2b2f1f;
+}
+.rotate-handle:hover .handle-dot {
+  fill: #4a4226;
 }
 .mission-panel {
   border-top: 1px solid #2a333d;

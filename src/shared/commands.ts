@@ -1,11 +1,4 @@
-import type { Element, Kind, LabDocument } from "./document";
-export interface DocumentCommands {
-  select: (id: string | null) => void;
-  add: (kind: Kind) => void;
-  update: (id: string, patch: Partial<Element>) => void;
-  remove: (id: string) => void;
-  replace: (doc: LabDocument) => void;
-}
+import type { Element, LabDocument } from "./document";
 export function patchDocument(
   doc: LabDocument,
   id: string,
